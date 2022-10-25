@@ -16,6 +16,8 @@
 #include "igc.h"
 #include "igc_hw.h"
 #include "igc_tsn.h"
+#include "backport.h"
+#include "backport_overflow.h"
 
 #define DRV_SUMMARY	"Intel(R) 2.5G Ethernet Linux Driver"
 
@@ -362,13 +364,11 @@ static void igc_clean_rx_ring(struct igc_ring *rx_ring)
 					      DMA_FROM_DEVICE);
 
 		/* free resources associated with mapping */
-		dma_unmap_page_attrs(rx_ring->dev,
-				     buffer_info->dma,
-				     igc_rx_pg_size(rx_ring),
-				     DMA_FROM_DEVICE,
-				     IGC_RX_DMA_ATTR);
-		__page_frag_cache_drain(buffer_info->page,
-					buffer_info->pagecnt_bias);
+		dma_unmap_page(rx_ring->dev,
+					buffer_info->dma,
+ 				    igc_rx_pg_size(rx_ring),
+				    DMA_FROM_DEVICE);
+		__free_page(buffer_info->page);
 
 		i++;
 		if (i == rx_ring->count)
@@ -627,6 +627,29 @@ static void igc_configure_tx(struct igc_adapter *adapter)
 
 	for (i = 0; i < adapter->num_tx_queues; i++)
 		igc_configure_tx_ring(adapter, adapter->tx_ring[i]);
+}
+
+// FIXME copy from igc_ethtool.c, remove this function after enable ethtool api
+void igc_write_rss_indir_tbl(struct igc_adapter *adapter)
+{
+	struct igc_hw *hw = &adapter->hw;
+	u32 reg = IGC_RETA(0);
+	u32 shift = 0;
+	int i = 0;
+
+	while (i < IGC_RETA_SIZE) {
+		u32 val = 0;
+		int j;
+
+		for (j = 3; j >= 0; j--) {
+			val <<= 8;
+			val |= adapter->rss_indir_tbl[i + j];
+		}
+
+		wr32(reg, val << shift);
+		reg += 4;
+		i += 4;
+	}
 }
 
 /**
@@ -897,6 +920,7 @@ static __le32 igc_tx_launchtime(struct igc_adapter *adapter, ktime_t txtime)
 {
 	ktime_t cycle_time = adapter->cycle_time;
 	ktime_t base_time = adapter->base_time;
+	ktime_t sub_time = ktime_sub(txtime, base_time);
 	u32 launchtime;
 
 	/* FIXME: when using ETF together with taprio, we may have a
@@ -905,7 +929,7 @@ static __le32 igc_tx_launchtime(struct igc_adapter *adapter, ktime_t txtime)
 	 * IGC_BASET, as the value writen into the launchtime
 	 * descriptor field may be misinterpreted.
 	 */
-	div_s64_rem(ktime_sub_ns(txtime, base_time), cycle_time, &launchtime);
+	div_s64_rem(sub_time.tv64, cycle_time.tv64, &launchtime);
 
 	return cpu_to_le32(launchtime);
 }
@@ -966,16 +990,17 @@ csum_failed:
 	switch (skb->csum_offset) {
 	case offsetof(struct tcphdr, check):
 		type_tucmd = IGC_ADVTXD_TUCMD_L4T_TCP;
-		fallthrough;
+		break;
 	case offsetof(struct udphdr, check):
 		break;
 	case offsetof(struct sctphdr, checksum):
 		/* validate that this is actually an SCTP request */
-		if (skb_csum_is_sctp(skb)) {
-			type_tucmd = IGC_ADVTXD_TUCMD_L4T_SCTP;
-			break;
-		}
-		fallthrough;
+		// if (skb->csum_not_inet) {
+		// 	type_tucmd = IGC_ADVTXD_TUCMD_L4T_SCTP;
+		// 	break;
+		// }
+		skb_checksum_help(skb);
+		goto csum_failed;
 	default:
 		skb_checksum_help(skb);
 		goto csum_failed;
@@ -1173,7 +1198,7 @@ static int igc_tx_map(struct igc_ring *tx_ring,
 	/* Make sure there is space in the ring for the next send. */
 	igc_maybe_stop_tx(tx_ring, DESC_NEEDED);
 
-	if (netif_xmit_stopped(txring_txq(tx_ring)) || !netdev_xmit_more()) {
+	if (netif_xmit_stopped(txring_txq(tx_ring)) || !skb->xmit_more) {
 		writel(i, tx_ring->tail);
 	}
 
@@ -1596,7 +1621,7 @@ static struct sk_buff *igc_construct_skb(struct igc_ring *rx_ring,
 	/* Determine available headroom for copy */
 	headlen = size;
 	if (headlen > IGC_RX_HDR_LEN)
-		headlen = eth_get_headlen(skb->dev, va, IGC_RX_HDR_LEN);
+		headlen = eth_get_headlen(va, IGC_RX_HDR_LEN);
 
 	/* align pull length to size of long to optimize memcpy performance */
 	memcpy(__skb_put(skb, headlen), va, ALIGN(headlen, sizeof(long)));
@@ -1659,7 +1684,7 @@ static bool igc_can_reuse_rx_page(struct igc_rx_buffer *rx_buffer)
 
 #if (PAGE_SIZE < 8192)
 	/* if we are only owner of page we can reuse it */
-	if (unlikely((page_ref_count(page) - pagecnt_bias) > 1))
+	if (unlikely(atomic_read(&page->_count) - pagecnt_bias > 1))
 		return false;
 #else
 #define IGC_LAST_OFFSET \
@@ -1674,7 +1699,7 @@ static bool igc_can_reuse_rx_page(struct igc_rx_buffer *rx_buffer)
 	 * number of references the driver holds.
 	 */
 	if (unlikely(!pagecnt_bias)) {
-		page_ref_add(page, USHRT_MAX);
+		atomic_add(USHRT_MAX, &page->_count);
 		rx_buffer->pagecnt_bias = USHRT_MAX;
 	}
 
@@ -1752,11 +1777,10 @@ static void igc_put_rx_buffer(struct igc_ring *rx_ring,
 		/* We are not reusing the buffer so unmap it and free
 		 * any references we are holding to it
 		 */
-		dma_unmap_page_attrs(rx_ring->dev, rx_buffer->dma,
-				     igc_rx_pg_size(rx_ring), DMA_FROM_DEVICE,
-				     IGC_RX_DMA_ATTR);
-		__page_frag_cache_drain(rx_buffer->page,
-					rx_buffer->pagecnt_bias);
+		dma_unmap_page(rx_ring->dev, rx_buffer->dma,
+					igc_rx_pg_size(rx_ring),
+					DMA_FROM_DEVICE);
+		__free_page(rx_buffer->page);
 	}
 
 	/* clear contents of rx_buffer */
@@ -1786,10 +1810,9 @@ static bool igc_alloc_mapped_page(struct igc_ring *rx_ring,
 	}
 
 	/* map page for use */
-	dma = dma_map_page_attrs(rx_ring->dev, page, 0,
-				 igc_rx_pg_size(rx_ring),
-				 DMA_FROM_DEVICE,
-				 IGC_RX_DMA_ATTR);
+	dma = dma_map_page(rx_ring->dev, page, 0,
+				igc_rx_pg_size(rx_ring),
+				DMA_FROM_DEVICE);
 
 	/* if mapping failed free memory back to system since
 	 * there isn't much point in holding memory we can't use
@@ -2016,7 +2039,7 @@ static bool igc_clean_tx_irq(struct igc_q_vector *q_vector, int napi_budget)
 		total_packets += tx_buffer->gso_segs;
 
 		/* free the skb */
-		napi_consume_skb(tx_buffer->skb, napi_budget);
+		dev_consume_skb_any(tx_buffer->skb);
 
 		/* unmap skb header data */
 		dma_unmap_single(tx_ring->dev,
@@ -3291,10 +3314,10 @@ static int igc_poll(struct napi_struct *napi, int budget)
 	/* Exit the polling mode, but don't re-enable interrupts if stack might
 	 * poll us due to busy-polling
 	 */
-	if (likely(napi_complete_done(napi, work_done)))
-		igc_ring_irq_enable(q_vector);
+	napi_complete_done(napi, work_done);
+	igc_ring_irq_enable(q_vector);
 
-	return min(work_done, budget - 1);
+	return 0;
 }
 
 /**
@@ -3771,7 +3794,7 @@ void igc_down(struct igc_adapter *adapter)
 	/* flush and sleep below */
 
 	/* set trans_start so we don't get spurious watchdogs during reset */
-	netif_trans_update(netdev);
+	netdev->trans_start = jiffies;
 
 	netif_carrier_off(netdev);
 	netif_tx_stop_all_queues(netdev);
@@ -3951,23 +3974,11 @@ igc_features_check(struct sk_buff *skb, struct net_device *dev,
 	mac_hdr_len = skb_network_header(skb) - skb->data;
 	if (unlikely(mac_hdr_len > IGC_MAX_MAC_HDR_LEN))
 		return features & ~(NETIF_F_HW_CSUM |
-				    NETIF_F_SCTP_CRC |
-				    NETIF_F_HW_VLAN_CTAG_TX |
-				    NETIF_F_TSO |
-				    NETIF_F_TSO6);
+				    NETIF_F_HW_VLAN_CTAG_TX);
 
 	network_hdr_len = skb_checksum_start(skb) - skb_network_header(skb);
 	if (unlikely(network_hdr_len >  IGC_MAX_NETWORK_HDR_LEN))
-		return features & ~(NETIF_F_HW_CSUM |
-				    NETIF_F_SCTP_CRC |
-				    NETIF_F_TSO |
-				    NETIF_F_TSO6);
-
-	/* We can only support IPv4 TSO in tunnels if we can mangle the
-	 * inner IP ID field, so strip TSO if MANGLEID is not supported.
-	 */
-	if (skb->encapsulation && !(features & NETIF_F_TSO_MANGLEID))
-		features &= ~NETIF_F_TSO;
+		return features & ~(NETIF_F_HW_CSUM);
 
 	return features;
 }
@@ -4683,10 +4694,10 @@ static int igc_save_launchtime_params(struct igc_adapter *adapter, int queue,
 	ring = adapter->tx_ring[queue];
 	ring->launchtime_enable = enable;
 
-	if (adapter->base_time)
+	if (adapter->base_time.tv64)
 		return 0;
 
-	adapter->cycle_time = NSEC_PER_SEC;
+	adapter->cycle_time.tv64 = NSEC_PER_SEC;
 
 	for (i = 0; i < adapter->num_tx_queues; i++) {
 		ring = adapter->tx_ring[i];
@@ -4706,143 +4717,143 @@ static bool is_base_time_past(ktime_t base_time, const struct timespec64 *now)
 	return timespec64_compare(now, &b) > 0;
 }
 
-static bool validate_schedule(struct igc_adapter *adapter,
-			      const struct tc_taprio_qopt_offload *qopt)
-{
-	int queue_uses[IGC_MAX_TX_QUEUES] = { };
-	struct timespec64 now;
-	size_t n;
+// static bool validate_schedule(struct igc_adapter *adapter,
+// 			      const struct tc_taprio_qopt_offload *qopt)
+// {
+// 	int queue_uses[IGC_MAX_TX_QUEUES] = { };
+// 	struct timespec64 now;
+// 	size_t n;
 
-	if (qopt->cycle_time_extension)
-		return false;
+// 	if (qopt->cycle_time_extension)
+// 		return false;
 
-	igc_ptp_read(adapter, &now);
+// 	igc_ptp_read(adapter, &now);
 
-	/* If we program the controller's BASET registers with a time
-	 * in the future, it will hold all the packets until that
-	 * time, causing a lot of TX Hangs, so to avoid that, we
-	 * reject schedules that would start in the future.
-	 */
-	if (!is_base_time_past(qopt->base_time, &now))
-		return false;
+// 	/* If we program the controller's BASET registers with a time
+// 	 * in the future, it will hold all the packets until that
+// 	 * time, causing a lot of TX Hangs, so to avoid that, we
+// 	 * reject schedules that would start in the future.
+// 	 */
+// 	if (!is_base_time_past(qopt->base_time, &now))
+// 		return false;
 
-	for (n = 0; n < qopt->num_entries; n++) {
-		const struct tc_taprio_sched_entry *e;
-		int i;
+// 	for (n = 0; n < qopt->num_entries; n++) {
+// 		const struct tc_taprio_sched_entry *e;
+// 		int i;
 
-		e = &qopt->entries[n];
+// 		e = &qopt->entries[n];
 
-		/* i225 only supports "global" frame preemption
-		 * settings.
-		 */
-		if (e->command != TC_TAPRIO_CMD_SET_GATES)
-			return false;
+// 		/* i225 only supports "global" frame preemption
+// 		 * settings.
+// 		 */
+// 		if (e->command != TC_TAPRIO_CMD_SET_GATES)
+// 			return false;
 
-		for (i = 0; i < IGC_MAX_TX_QUEUES; i++) {
-			if (e->gate_mask & BIT(i))
-				queue_uses[i]++;
+// 		for (i = 0; i < IGC_MAX_TX_QUEUES; i++) {
+// 			if (e->gate_mask & BIT(i))
+// 				queue_uses[i]++;
 
-			if (queue_uses[i] > 1)
-				return false;
-		}
-	}
+// 			if (queue_uses[i] > 1)
+// 				return false;
+// 		}
+// 	}
 
-	return true;
-}
+// 	return true;
+// }
 
-static int igc_tsn_enable_launchtime(struct igc_adapter *adapter,
-				     struct tc_etf_qopt_offload *qopt)
-{
-	struct igc_hw *hw = &adapter->hw;
-	int err;
+// static int igc_tsn_enable_launchtime(struct igc_adapter *adapter,
+// 				     struct tc_etf_qopt_offload *qopt)
+// {
+// 	struct igc_hw *hw = &adapter->hw;
+// 	int err;
 
-	if (hw->mac.type != igc_i225)
-		return -EOPNOTSUPP;
+// 	if (hw->mac.type != igc_i225)
+// 		return -EOPNOTSUPP;
 
-	err = igc_save_launchtime_params(adapter, qopt->queue, qopt->enable);
-	if (err)
-		return err;
+// 	err = igc_save_launchtime_params(adapter, qopt->queue, qopt->enable);
+// 	if (err)
+// 		return err;
 
-	return igc_tsn_offload_apply(adapter);
-}
+// 	return igc_tsn_offload_apply(adapter);
+// }
 
-static int igc_save_qbv_schedule(struct igc_adapter *adapter,
-				 struct tc_taprio_qopt_offload *qopt)
-{
-	u32 start_time = 0, end_time = 0;
-	size_t n;
+// static int igc_save_qbv_schedule(struct igc_adapter *adapter,
+// 				 struct tc_taprio_qopt_offload *qopt)
+// {
+// 	u32 start_time = 0, end_time = 0;
+// 	size_t n;
 
-	if (!qopt->enable) {
-		adapter->base_time = 0;
-		return 0;
-	}
+// 	if (!qopt->enable) {
+// 		adapter->base_time = 0;
+// 		return 0;
+// 	}
 
-	if (adapter->base_time)
-		return -EALREADY;
+// 	if (adapter->base_time)
+// 		return -EALREADY;
 
-	if (!validate_schedule(adapter, qopt))
-		return -EINVAL;
+// 	if (!validate_schedule(adapter, qopt))
+// 		return -EINVAL;
 
-	adapter->cycle_time = qopt->cycle_time;
-	adapter->base_time = qopt->base_time;
+// 	adapter->cycle_time = qopt->cycle_time;
+// 	adapter->base_time = qopt->base_time;
 
-	/* FIXME: be a little smarter about cases when the gate for a
-	 * queue stays open for more than one entry.
-	 */
-	for (n = 0; n < qopt->num_entries; n++) {
-		struct tc_taprio_sched_entry *e = &qopt->entries[n];
-		int i;
+// 	/* FIXME: be a little smarter about cases when the gate for a
+// 	 * queue stays open for more than one entry.
+// 	 */
+// 	for (n = 0; n < qopt->num_entries; n++) {
+// 		struct tc_taprio_sched_entry *e = &qopt->entries[n];
+// 		int i;
 
-		end_time += e->interval;
+// 		end_time += e->interval;
 
-		for (i = 0; i < IGC_MAX_TX_QUEUES; i++) {
-			struct igc_ring *ring = adapter->tx_ring[i];
+// 		for (i = 0; i < IGC_MAX_TX_QUEUES; i++) {
+// 			struct igc_ring *ring = adapter->tx_ring[i];
 
-			if (!(e->gate_mask & BIT(i)))
-				continue;
+// 			if (!(e->gate_mask & BIT(i)))
+// 				continue;
 
-			ring->start_time = start_time;
-			ring->end_time = end_time;
-		}
+// 			ring->start_time = start_time;
+// 			ring->end_time = end_time;
+// 		}
 
-		start_time += e->interval;
-	}
+// 		start_time += e->interval;
+// 	}
 
-	return 0;
-}
+// 	return 0;
+// }
 
-static int igc_tsn_enable_qbv_scheduling(struct igc_adapter *adapter,
-					 struct tc_taprio_qopt_offload *qopt)
-{
-	struct igc_hw *hw = &adapter->hw;
-	int err;
+// static int igc_tsn_enable_qbv_scheduling(struct igc_adapter *adapter,
+// 					 struct tc_taprio_qopt_offload *qopt)
+// {
+// 	struct igc_hw *hw = &adapter->hw;
+// 	int err;
 
-	if (hw->mac.type != igc_i225)
-		return -EOPNOTSUPP;
+// 	if (hw->mac.type != igc_i225)
+// 		return -EOPNOTSUPP;
 
-	err = igc_save_qbv_schedule(adapter, qopt);
-	if (err)
-		return err;
+// 	err = igc_save_qbv_schedule(adapter, qopt);
+// 	if (err)
+// 		return err;
 
-	return igc_tsn_offload_apply(adapter);
-}
+// 	return igc_tsn_offload_apply(adapter);
+// }
 
-static int igc_setup_tc(struct net_device *dev, enum tc_setup_type type,
-			void *type_data)
-{
-	struct igc_adapter *adapter = netdev_priv(dev);
+// static int igc_setup_tc(struct net_device *dev, enum tc_setup_type type,
+// 			void *type_data)
+// {
+// 	struct igc_adapter *adapter = netdev_priv(dev);
 
-	switch (type) {
-	case TC_SETUP_QDISC_TAPRIO:
-		return igc_tsn_enable_qbv_scheduling(adapter, type_data);
+// 	switch (type) {
+// 	case TC_SETUP_QDISC_TAPRIO:
+// 		return igc_tsn_enable_qbv_scheduling(adapter, type_data);
 
-	case TC_SETUP_QDISC_ETF:
-		return igc_tsn_enable_launchtime(adapter, type_data);
+// 	case TC_SETUP_QDISC_ETF:
+// 		return igc_tsn_enable_launchtime(adapter, type_data);
 
-	default:
-		return -EOPNOTSUPP;
-	}
-}
+// 	default:
+// 		return -EOPNOTSUPP;
+// 	}
+// }
 
 static const struct net_device_ops igc_netdev_ops = {
 	.ndo_open		= igc_open,
@@ -4856,7 +4867,7 @@ static const struct net_device_ops igc_netdev_ops = {
 	.ndo_set_features	= igc_set_features,
 	.ndo_features_check	= igc_features_check,
 	.ndo_do_ioctl		= igc_ioctl,
-	.ndo_setup_tc		= igc_setup_tc,
+	// .ndo_setup_tc		= igc_setup_tc,
 };
 
 /* PCIe configuration access */
@@ -5047,7 +5058,7 @@ static int igc_probe(struct pci_dev *pdev,
 	hw->hw_addr = adapter->io_addr;
 
 	netdev->netdev_ops = &igc_netdev_ops;
-	igc_ethtool_set_ops(netdev);
+	// igc_ethtool_set_ops(netdev);
 	netdev->watchdog_timeo = 5 * HZ;
 
 	netdev->mem_start = pci_resource_start(pdev, 0);
@@ -5071,23 +5082,11 @@ static int igc_probe(struct pci_dev *pdev,
 
 	/* Add supported features to the features list*/
 	netdev->features |= NETIF_F_SG;
-	netdev->features |= NETIF_F_TSO;
-	netdev->features |= NETIF_F_TSO6;
-	netdev->features |= NETIF_F_TSO_ECN;
+	// netdev->features |= NETIF_F_TSO;
+	// netdev->features |= NETIF_F_TSO6;
+	// netdev->features |= NETIF_F_TSO_ECN;
 	netdev->features |= NETIF_F_RXCSUM;
 	netdev->features |= NETIF_F_HW_CSUM;
-	netdev->features |= NETIF_F_SCTP_CRC;
-	netdev->features |= NETIF_F_HW_TC;
-
-#define IGC_GSO_PARTIAL_FEATURES (NETIF_F_GSO_GRE | \
-				  NETIF_F_GSO_GRE_CSUM | \
-				  NETIF_F_GSO_IPXIP4 | \
-				  NETIF_F_GSO_IPXIP6 | \
-				  NETIF_F_GSO_UDP_TUNNEL | \
-				  NETIF_F_GSO_UDP_TUNNEL_CSUM)
-
-	netdev->gso_partial_features = IGC_GSO_PARTIAL_FEATURES;
-	netdev->features |= NETIF_F_GSO_PARTIAL | IGC_GSO_PARTIAL_FEATURES;
 
 	/* setup the private structure */
 	err = igc_sw_init(adapter);
@@ -5102,8 +5101,8 @@ static int igc_probe(struct pci_dev *pdev,
 		netdev->features |= NETIF_F_HIGHDMA;
 
 	/* MTU range: 68 - 9216 */
-	netdev->min_mtu = ETH_MIN_MTU;
-	netdev->max_mtu = MAX_STD_JUMBO_FRAME_SIZE;
+	// netdev->min_mtu = ETH_MIN_MTU;
+	// netdev->max_mtu = MAX_STD_JUMBO_FRAME_SIZE;
 
 	/* before reading the NVM, reset the controller to put the device in a
 	 * known good starting state
@@ -5118,11 +5117,11 @@ static int igc_probe(struct pci_dev *pdev,
 		}
 	}
 
-	if (eth_platform_get_mac_address(&pdev->dev, hw->mac.addr)) {
+	// if (eth_platform_get_mac_address(&pdev->dev, hw->mac.addr)) {
 		/* copy the MAC address out of the NVM */
 		if (hw->mac.ops.read_mac_addr(hw))
 			dev_err(&pdev->dev, "NVM Read Error\n");
-	}
+	// }
 
 	memcpy(netdev->dev_addr, hw->mac.addr, netdev->addr_len);
 
@@ -5182,10 +5181,11 @@ static int igc_probe(struct pci_dev *pdev,
 	adapter->ei = *ei;
 
 	/* print pcie link status and MAC address */
-	pcie_print_link_status(pdev);
+	// TODO backport pcie_print_link_status from drivers/pci/pci.c
+	// pcie_print_link_status(pdev);
 	netdev_info(netdev, "MAC: %pM\n", netdev->dev_addr);
 
-	dev_pm_set_driver_flags(&pdev->dev, DPM_FLAG_NO_DIRECT_COMPLETE);
+	// dev_pm_set_driver_flags(&pdev->dev, DPM_FLAG_NO_DIRECT_COMPLETE);
 	/* Disable EEE for internal PHY devices */
 	hw->dev_spec._base.eee_enable = false;
 	adapter->flags &= ~IGC_FLAG_EEE;
@@ -5206,7 +5206,8 @@ err_sw_init:
 err_ioremap:
 	free_netdev(netdev);
 err_alloc_etherdev:
-	pci_release_mem_regions(pdev);
+	pci_release_selected_regions(pdev,
+		pci_select_bars(pdev, IORESOURCE_MEM));
 err_pci_reg:
 err_dma:
 	pci_disable_device(pdev);

@@ -8,6 +8,7 @@
 
 #include "igc.h"
 #include "igc_diag.h"
+#include "backport_overflow.h"
 
 /* forward declaration */
 struct igc_stats {
@@ -15,6 +16,14 @@ struct igc_stats {
 	int sizeof_stat;
 	int stat_offset;
 };
+
+/**
+ * sizeof_field(TYPE, MEMBER)
+ *
+ * @TYPE: The structure containing the field of interest
+ * @MEMBER: The field to return the size of
+ */
+#define sizeof_field(TYPE, MEMBER) sizeof((((TYPE *)0)->MEMBER))
 
 #define IGC_STAT(_name, _stat) { \
 	.stat_string = _name, \
@@ -380,7 +389,7 @@ static int igc_ethtool_set_wol(struct net_device *netdev,
 {
 	struct igc_adapter *adapter = netdev_priv(netdev);
 
-	if (wol->wolopts & (WAKE_ARP | WAKE_MAGICSECURE | WAKE_FILTER))
+	if (wol->wolopts & (WAKE_ARP | WAKE_MAGICSECURE))
 		return -EOPNOTSUPP;
 
 	if (!(adapter->flags & IGC_FLAG_WOL_SUPPORTED))

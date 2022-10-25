@@ -16,6 +16,31 @@
 #define IGC_SYSTIM_OVERFLOW_PERIOD	(HZ * 60 * 9)
 #define IGC_PTP_TX_TIMEOUT		(HZ * 15)
 
+#define netdev_level_once(level, dev, fmt, ...)                 \
+do {                                                            \
+        static bool __print_once __read_mostly;                 \
+                                                                \
+        if (!__print_once) {                                    \
+                __print_once = true;                            \
+                netdev_printk(level, dev, fmt, ##__VA_ARGS__);  \
+        }                                                       \
+} while (0)
+
+#define netdev_emerg_once(dev, fmt, ...) \
+        netdev_level_once(KERN_EMERG, dev, fmt, ##__VA_ARGS__)
+#define netdev_alert_once(dev, fmt, ...) \
+        netdev_level_once(KERN_ALERT, dev, fmt, ##__VA_ARGS__)
+#define netdev_crit_once(dev, fmt, ...) \
+        netdev_level_once(KERN_CRIT, dev, fmt, ##__VA_ARGS__)
+#define netdev_err_once(dev, fmt, ...) \
+        netdev_level_once(KERN_ERR, dev, fmt, ##__VA_ARGS__)
+#define netdev_warn_once(dev, fmt, ...) \
+        netdev_level_once(KERN_WARNING, dev, fmt, ##__VA_ARGS__)
+#define netdev_notice_once(dev, fmt, ...) \
+        netdev_level_once(KERN_NOTICE, dev, fmt, ##__VA_ARGS__)
+#define netdev_info_once(dev, fmt, ...) \
+        netdev_level_once(KERN_INFO, dev, fmt, ##__VA_ARGS__)
+
 /* SYSTIM read access for I225 */
 void igc_ptp_read(struct igc_adapter *adapter, struct timespec64 *ts)
 {
@@ -84,8 +109,7 @@ static int igc_ptp_adjtime_i225(struct ptp_clock_info *ptp, s64 delta)
 }
 
 static int igc_ptp_gettimex64_i225(struct ptp_clock_info *ptp,
-				   struct timespec64 *ts,
-				   struct ptp_system_timestamp *sts)
+				   struct timespec64 *ts)
 {
 	struct igc_adapter *igc = container_of(ptp, struct igc_adapter,
 					       ptp_caps);
@@ -94,10 +118,8 @@ static int igc_ptp_gettimex64_i225(struct ptp_clock_info *ptp,
 
 	spin_lock_irqsave(&igc->tmreg_lock, flags);
 
-	ptp_read_system_prets(sts);
 	ts->tv_nsec = rd32(IGC_SYSTIML);
 	ts->tv_sec = rd32(IGC_SYSTIMH);
-	ptp_read_system_postts(sts);
 
 	spin_unlock_irqrestore(&igc->tmreg_lock, flags);
 
@@ -308,7 +330,7 @@ static int igc_ptp_set_timestamp_mode(struct igc_adapter *adapter,
 	case HWTSTAMP_FILTER_PTP_V2_L2_DELAY_REQ:
 	case HWTSTAMP_FILTER_PTP_V2_L4_DELAY_REQ:
 	case HWTSTAMP_FILTER_PTP_V1_L4_EVENT:
-	case HWTSTAMP_FILTER_NTP_ALL:
+	// case HWTSTAMP_FILTER_NTP_ALL:
 	case HWTSTAMP_FILTER_ALL:
 		igc_ptp_enable_rx_timestamp(adapter);
 		config->rx_filter = HWTSTAMP_FILTER_ALL;
@@ -491,9 +513,9 @@ void igc_ptp_init(struct igc_adapter *adapter)
 		snprintf(adapter->ptp_caps.name, 16, "%pm", netdev->dev_addr);
 		adapter->ptp_caps.owner = THIS_MODULE;
 		adapter->ptp_caps.max_adj = 62499999;
-		adapter->ptp_caps.adjfine = igc_ptp_adjfine_i225;
+		// adapter->ptp_caps.adjfine = igc_ptp_adjfine_i225;
 		adapter->ptp_caps.adjtime = igc_ptp_adjtime_i225;
-		adapter->ptp_caps.gettimex64 = igc_ptp_gettimex64_i225;
+		adapter->ptp_caps.gettime64 = igc_ptp_gettimex64_i225;
 		adapter->ptp_caps.settime64 = igc_ptp_settime_i225;
 		adapter->ptp_caps.enable = igc_ptp_feature_enable_i225;
 		break;

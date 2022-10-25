@@ -30,7 +30,7 @@ static int igc_tsn_disable_offload(struct igc_adapter *adapter)
 	if (!(adapter->flags & IGC_FLAG_TSN_QBV_ENABLED))
 		return 0;
 
-	adapter->cycle_time = 0;
+	adapter->cycle_time.tv64 = 0;
 
 	wr32(IGC_TXPBS, I225_TXPBSIZE_DEFAULT);
 	wr32(IGC_DTXMXPKTSZ, IGC_DTXMXPKTSZ_DEFAULT);
@@ -71,7 +71,7 @@ static int igc_tsn_enable_offload(struct igc_adapter *adapter)
 	if (adapter->flags & IGC_FLAG_TSN_QBV_ENABLED)
 		return 0;
 
-	cycle = adapter->cycle_time;
+	cycle = adapter->cycle_time.tv64;
 	base_time = adapter->base_time;
 
 	wr32(IGC_TSAUXC, 0);
@@ -92,7 +92,7 @@ static int igc_tsn_enable_offload(struct igc_adapter *adapter)
 		wr32(IGC_STQT(i), ring->start_time);
 		wr32(IGC_ENDQT(i), ring->end_time);
 
-		if (adapter->base_time) {
+		if (adapter->base_time.tv64) {
 			/* If we have a base_time we are in "taprio"
 			 * mode and we need to be strict about the
 			 * cycles: only transmit a packet if it can be
@@ -116,11 +116,12 @@ static int igc_tsn_enable_offload(struct igc_adapter *adapter)
 	if (ktime_compare(systim, base_time) > 0) {
 		s64 n;
 
-		n = div64_s64(ktime_sub_ns(systim, base_time), cycle);
+		ktime_t sub_time = ktime_sub(systim, base_time);
+		n = div64_s64(sub_time.tv64, cycle);
 		base_time = ktime_add_ns(base_time, (n + 1) * cycle);
 	}
 
-	baset_h = div_s64_rem(base_time, NSEC_PER_SEC, &baset_l);
+	baset_h = div_s64_rem(base_time.tv64, NSEC_PER_SEC, &baset_l);
 
 	wr32(IGC_BASET_H, baset_h);
 	wr32(IGC_BASET_L, baset_l);
@@ -132,7 +133,7 @@ static int igc_tsn_enable_offload(struct igc_adapter *adapter)
 
 int igc_tsn_offload_apply(struct igc_adapter *adapter)
 {
-	bool is_any_enabled = adapter->base_time || is_any_launchtime(adapter);
+	bool is_any_enabled = adapter->base_time.tv64 || is_any_launchtime(adapter);
 
 	if (!(adapter->flags & IGC_FLAG_TSN_QBV_ENABLED) && !is_any_enabled)
 		return 0;
