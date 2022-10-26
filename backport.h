@@ -179,3 +179,25 @@ pci_release_mem_regions(struct pci_dev *pdev)
         return pci_release_selected_regions(pdev,
                             pci_select_bars(pdev, IORESOURCE_MEM));
 }
+
+static inline bool ethtool_convert_link_mode_to_legacy_u32(u32 *legacy_u32,
+                const unsigned long *src)
+{
+        bool retval = true;
+
+        /* TODO: following test will soon always be true */
+        if (__ETHTOOL_LINK_MODE_MASK_NBITS > 32) {
+                __ETHTOOL_DECLARE_LINK_MODE_MASK(ext);
+
+                bitmap_zero(ext, __ETHTOOL_LINK_MODE_MASK_NBITS);
+                bitmap_fill(ext, 32);
+                bitmap_complement(ext, ext, __ETHTOOL_LINK_MODE_MASK_NBITS);
+                if (bitmap_intersects(ext, src,
+                                      __ETHTOOL_LINK_MODE_MASK_NBITS)) {
+                        /* src mask goes beyond bit 31 */
+                        retval = false;
+                }
+        }
+        *legacy_u32 = src[0];
+        return retval;
+}
