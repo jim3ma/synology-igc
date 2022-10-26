@@ -45,7 +45,7 @@ Copy `igc.ko` to target machine
 ```
 
 ```
-insmod igc.ko debug=1
+insmod igc.ko debug=16 # enable debug log
 echo igc > /sys/bus/pci/devices/0000:03:00.0/driver_override
 echo 0000:03:00.0 > /sys/bus/pci/drivers_probe
 ip link set up eth1 # in my machine, the nic name is eth1

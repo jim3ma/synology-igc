@@ -20,13 +20,16 @@
 #include "backport_overflow.h"
 
 #define DRV_SUMMARY	"Intel(R) 2.5G Ethernet Linux Driver"
+#define DRV_VERSION	"1.0.0"
 
 #define DEFAULT_MSG_ENABLE (NETIF_MSG_DRV | NETIF_MSG_PROBE | NETIF_MSG_LINK)
 
 static int debug = -1;
 
 MODULE_AUTHOR("Intel Corporation, <linux.nics@intel.com>");
+MODULE_AUTHOR("Jim Ma, <majinjing3@gmail.com>");
 MODULE_DESCRIPTION(DRV_SUMMARY);
+MODULE_VERSION(DRV_VERSION);
 MODULE_LICENSE("GPL v2");
 module_param(debug, int, 0);
 MODULE_PARM_DESC(debug, "Debug level (0=none,...,16=all)");
@@ -34,7 +37,7 @@ MODULE_PARM_DESC(debug, "Debug level (0=none,...,16=all)");
 char igc_driver_name[] = "igc";
 static const char igc_driver_string[] = DRV_SUMMARY;
 static const char igc_copyright[] =
-	"Copyright(c) 2018 Intel Corporation.";
+	"Copyright(c) 2018 Intel Corporation. Copyright(c) 2022 Jim Ma.";
 
 static const struct igc_info *igc_info_tbl[] = {
 	[board_base] = &igc_base_info,
