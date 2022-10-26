@@ -53,8 +53,7 @@ ip link set up eth1 # in my machine, the nic name is eth1
 
 ## TODO
 
-1. ethtool support
-2. tc support
+1. tc support
 
 ## History
 

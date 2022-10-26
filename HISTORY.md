@@ -1,3 +1,9 @@
+## 1.1.0
+
+_Date 2022.10.27_
+
+* Support ethtool operations
+
 ## 1.0.0
 
 _Date 2022.10.26_
