@@ -66,7 +66,11 @@ ip link set up eth1 # in my machine, the nic name is eth1
 
 ### 1.2.1
 
+_Date 2022.11.03_
+
 * igc: Fix BUG: scheduling while atomic
+* igc: Add new device ID I226_LMVP
+* igc: Fix suspending when PTM is active
 
 ### 1.2.0
 
