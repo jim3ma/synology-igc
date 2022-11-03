@@ -1,6 +1,12 @@
 # Intel igc driver for Synology Kernel 4.4.180
 
-> Backport from Linux Kernel v5.12, commit: 9f4ad9e425a1d3b6a34617b8ea226d56a119a717
+> Backport from Linux Kernel v5.12, commit: https://github.com/torvalds/linux/commit/9f4ad9e425a1d3b6a34617b8ea226d56a119a717
+
+## Prebuild module
+
+https://github.com/fbelavenuto/arpl-modules
+
+Eg: https://github.com/fbelavenuto/arpl-modules/blob/main/geminilake-4.4.180/igc.ko
 
 ## Build
 
@@ -54,7 +60,38 @@ ip link set up eth1 # in my machine, the nic name is eth1
 ## TODO
 
 1. tc support
+2. igc: Enable internal i225 PPS - https://github.com/torvalds/linux/commit/64433e5bf40abf893c7edbc60899bdcdd7c70b76
 
 ## History
 
-[History](HISTORY.md)
+### 1.2.1
+
+* igc: Fix BUG: scheduling while atomic
+
+### 1.2.0
+
+_Date 2022.10.27_
+
+Backport fixes from upstream
+
+* igc: Fix TX timestamp support for non-MSI-X platforms
+* igc: Fix typo in i225 LTR functions
+* igc: Update I226_K device ID
+* igc: Reinstate IGC_REMOVED logic and implement it properly
+* igc: Fix infinite loop in release_swfw_sync
+* igc: Increase timeout value for Speed 100/1000/2500
+* igc: Fix use-after-free error during reset
+* igc: change default return of igc_read_phy_reg()
+* igc: Fix an error handling path in 'igc_probe()'
+
+### 1.1.0
+
+_Date 2022.10.27_
+
+* Support ethtool operations
+
+### 1.0.0
+
+_Date 2022.10.26_
+
+* Backport from Linux Kernel v5.12, commit: 9f4ad9e425a1d3b6a34617b8ea226d56a119a717.
