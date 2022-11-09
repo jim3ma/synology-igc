@@ -2,11 +2,25 @@
 
 > Backport from Linux Kernel v5.12, commit: https://github.com/torvalds/linux/commit/9f4ad9e425a1d3b6a34617b8ea226d56a119a717
 
+## Compatible devices&NICs list
+
+Not all i225/i226 NIC is working.
+My device is UGREEN DX4600 with i225v b3, the igc driver is working normally.
+
+If this igc driver is compatible with your devices, you can reply in [this issue](https://github.com/jim3ma/synology-igc/issues/3).
+
+| Device Name | NIC version | Ports |
+| --- | --- | --- |
+| UGREEN DX4600 | i225v b3 | 2 |
+| ROG MAXIMUS XIII HERO | i225v b3 | 2 |
+
 ## Prebuild module
 
-https://github.com/fbelavenuto/arpl-modules
+Download from https://github.com/fbelavenuto/arpl-modules
 
 Eg: https://github.com/fbelavenuto/arpl-modules/blob/main/geminilake-4.4.180/igc.ko
+
+Follow load module action: https://github.com/jim3ma/synology-igc#3-load-module
 
 ## Build
 
