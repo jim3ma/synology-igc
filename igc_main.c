@@ -20,7 +20,7 @@
 #include "backport_overflow.h"
 
 #define DRV_SUMMARY	"Intel(R) 2.5G Ethernet Linux Driver"
-#define DRV_VERSION	"1.2.1"
+#define DRV_VERSION	"1.2.2"
 
 #define DEFAULT_MSG_ENABLE (NETIF_MSG_DRV | NETIF_MSG_PROBE | NETIF_MSG_LINK)
 

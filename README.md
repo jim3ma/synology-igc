@@ -22,7 +22,29 @@ Eg: https://github.com/fbelavenuto/arpl-modules/blob/main/geminilake-4.4.180/igc
 
 Follow load module action: https://github.com/jim3ma/synology-igc#3-load-module
 
-## Build
+## Build in docker
+
+```
+mkdir -p output
+
+# avaliable platform:
+#   apollolake
+#   broadwell
+#   broadwellnk
+#   denverton
+#   geminilake
+#   v1000
+# I think the platform is not important for building `igc`, change it as your own
+PLATFORM=geminilake
+
+docker run -u 1000 --rm -t -v "${PWD}":/input -v "${PWD}/output":/output fbelavenuto/syno-compiler compile-module ${PLATFORM}
+```
+
+The `output/igc.ko` is the module.
+
+And then lollow load module action: https://github.com/jim3ma/synology-igc#3-load-module
+
+## Build in Synology develop environment
 
 ### 1. Setup develop environment
 
@@ -77,6 +99,12 @@ ip link set up eth1 # in my machine, the nic name is eth1
 2. igc: Enable internal i225 PPS - https://github.com/torvalds/linux/commit/64433e5bf40abf893c7edbc60899bdcdd7c70b76
 
 ## History
+
+### 1.2.2
+
+_Date 2022.11.15_
+
+* Update defines for compile error
 
 ### 1.2.1
 
