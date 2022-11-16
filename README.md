@@ -100,9 +100,11 @@ ip link set up eth1 # in my machine, the nic name is eth1
 
 ## History
 
-### [WIP] 1.2.3
+### 1.2.3
 
 _Date 2022.11.16_
+
+This version support i226 with device id 8086:125C, firmware version: 2014:8877
 
 * igc: Remove phy->type checking
 * igc: Remove _I_PHY_ID checking
