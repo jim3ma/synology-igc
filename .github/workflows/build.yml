@@ -28,8 +28,9 @@ jobs:
       - name: Build
         run : |
           PLATFORM=geminilake
-          docker run -u 1000 --rm -t -v "${PWD}":/input -v "${PWD}/output":/output fbelavenuto/syno-compiler compile-module ${PLATFORM}
-          ls -al ${PWD}/output
+          mkdir ./${PLATFORM}
+          sudo docker run -u 1000 --rm -t -v "${PWD}":/input -v "${PWD}/${PLATFORM}":/output fbelavenuto/syno-compiler compile-module ${PLATFORM}
+          ls -al ${PWD}/${PLATFORM}
 
       - name: Upload firmware to release
         uses: softprops/action-gh-release@v1
@@ -38,7 +39,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ env.release_tag }}
-          files: ./output/*.ko
+          files: ./*/*.ko
 
       #- name: Delete workflow runs
       #  uses: Mattraks/delete-workflow-runs@v2
