@@ -1,16 +1,16 @@
 {
-  "mod_version": "v1",
+  "mod_version": "1.2.0",
 
   "files": [
     {
       "name": "igc-v1000.tgz",
-      "url": "https://raw.githubusercontent.com/aaa/bbb/master/igc/releases/igc-v1000.tgz",
-      "sha256": "9ead4f64a17cfc7cb4da4b96c2040c77b0d2e74dba77c4e524bd036207e7167a",
+      "url": "https://raw.githubusercontent.com/wjz304/synology-igc/master/igc/releases/igc-v1000.tgz",
+      "sha256": "ac1076ef9a150b08f5566dbf7922433cf4d931875b3d865d241944aef1343c62",
       "packed": true
     },
     {
       "name": "check-igc.sh",
-      "url": "https://raw.githubusercontent.com/aaa/bbb/master/igc/src/check-igc.sh",
+      "url": "https://raw.githubusercontent.com/wjz304/synology-igc/master/igc/src/check-igc.sh",
       "sha256": "4892e37cc4f974700b88332e005d61676257876938f8e57677c655a2eca5a8ef",
       "packed": false
     }
