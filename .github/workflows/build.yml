@@ -28,7 +28,7 @@ jobs:
       - name: Build
         run : |
           PLATFORM=geminilake
-          mkdir ./${PLATFORM}
+          mkdir ./${PLATFORM} && chmod 777 ./${PLATFORM}
           sudo docker run -u 1000 --rm -t -v "${PWD}":/input -v "${PWD}/${PLATFORM}":/output fbelavenuto/syno-compiler compile-module ${PLATFORM}
           ls -al ${PWD}/${PLATFORM}
 
