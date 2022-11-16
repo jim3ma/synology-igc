@@ -1,0 +1,56 @@
+#
+# Copyright (C) 2022 Ing <https://github.com/wjz304>
+# 
+# This is free software, licensed under the MIT License.
+# See /LICENSE for more information.
+#
+
+
+name: Build
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Init Env
+        run : |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          sudo timedatectl set-timezone "Asia/Shanghai"
+          echo "release_tag=$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_ENV
+
+      - name: Build
+        run : |
+          PLATFORM=geminilake
+          docker run -u 1000 --rm -t -v "${PWD}":/input -v "${PWD}/output":/output fbelavenuto/syno-compiler compile-module ${PLATFORM}
+          ls -al ${PWD}/output
+
+      - name: Upload firmware to release
+        uses: softprops/action-gh-release@v1
+        if: (!cancelled())
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.release_tag }}
+          files: ./output/*.ko
+
+      #- name: Delete workflow runs
+      #  uses: Mattraks/delete-workflow-runs@v2
+      #  with:
+      #    retain_days: 1
+      #    keep_minimum_runs: 9
+
+      - name: Remove old Releases
+        uses: dev-drprasad/delete-older-releases@v0.1.0
+        with:
+          keep_latest: 9
+          delete_tags: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
