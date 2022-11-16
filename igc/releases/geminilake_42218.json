@@ -1,0 +1,27 @@
+{
+  "mod_version": "v1",
+
+  "files": [
+    {
+      "name": "igc-geminilake.tgz",
+      "url": "https://raw.githubusercontent.com/aaa/bbb/master/igc/releases/igc-geminilake.tgz",
+      "sha256": "e1616d0b5a5ee5621497fb56bd153d5f41dedd70a36cf8f185ed7f5969ac97b1",
+      "packed": true
+    },
+    {
+      "name": "check-igc.sh",
+      "url": "https://raw.githubusercontent.com/aaa/bbb/master/igc/src/check-igc.sh",
+      "sha256": "4892e37cc4f974700b88332e005d61676257876938f8e57677c655a2eca5a8ef",
+      "packed": false
+    }
+  ],
+
+  "kmods": {
+    "igc.ko": ""
+  },
+
+    "scripts": {
+    "on_boot": "check-igc.sh"
+  }
+
+}

@@ -1,0 +1,27 @@
+{
+  "mod_version": "v1",
+
+  "files": [
+    {
+      "name": "igc-broadwell.tgz",
+      "url": "https://raw.githubusercontent.com/aaa/bbb/master/igc/releases/igc-broadwell.tgz",
+      "sha256": "ad281ae45b7081f79fddc390e4c511069fa3922091ff5b4f24bde57fd3ecde6a",
+      "packed": true
+    },
+    {
+      "name": "check-igc.sh",
+      "url": "https://raw.githubusercontent.com/aaa/bbb/master/igc/src/check-igc.sh",
+      "sha256": "4892e37cc4f974700b88332e005d61676257876938f8e57677c655a2eca5a8ef",
+      "packed": false
+    }
+  ],
+
+  "kmods": {
+    "igc.ko": ""
+  },
+
+    "scripts": {
+    "on_boot": "check-igc.sh"
+  }
+
+}
