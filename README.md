@@ -100,6 +100,13 @@ ip link set up eth1 # in my machine, the nic name is eth1
 
 ## History
 
+### [WIP] 1.2.3
+
+_Date 2022.11.16_
+
+* igc: Remove phy->type checking
+* igc: Remove _I_PHY_ID checking
+
 ### 1.2.2
 
 _Date 2022.11.15_
