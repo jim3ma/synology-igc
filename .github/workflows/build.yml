@@ -35,7 +35,7 @@ jobs:
           sudo docker run -u 1000 --rm -t -v "${PWD}":/input -v "${PWD}/${{matrix.platform}}":/output fbelavenuto/syno-compiler compile-module ${{matrix.platform}}
           
           ls -al ${PWD}/${{matrix.platform}}
-          zip -r igc-${{matrix.platform}}.zip ${PWD}/${{matrix.platform}}/*
+          tar zcvf igc-${{matrix.platform}}.tgz -C./${{matrix.platform}}/ .
 
       - name: Upload firmware to release
         uses: softprops/action-gh-release@v1
