@@ -14,6 +14,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [apollolake, broadwell, broadwellnk, denverton, geminilake, v1000]
+
     steps:
       - name: Checkout
         uses: actions/checkout@main
@@ -25,12 +29,13 @@ jobs:
           sudo timedatectl set-timezone "Asia/Shanghai"
           echo "release_tag=$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_ENV
 
-      - name: Build
+      - name: Build igc for ${{matrix.platform}}
         run : |
-          PLATFORM=geminilake
-          mkdir ./${PLATFORM} && chmod 777 ./${PLATFORM}
-          sudo docker run -u 1000 --rm -t -v "${PWD}":/input -v "${PWD}/${PLATFORM}":/output fbelavenuto/syno-compiler compile-module ${PLATFORM}
-          ls -al ${PWD}/${PLATFORM}
+          mkdir ./${{matrix.platform}} && chmod 777 ./${{matrix.platform}}
+          sudo docker run -u 1000 --rm -t -v "${PWD}":/input -v "${PWD}/${{matrix.platform}}":/output fbelavenuto/syno-compiler compile-module ${{matrix.platform}}
+          
+          ls -al ${PWD}/${{matrix.platform}}
+          zip -r igc-${{matrix.platform}}.zip ${PWD}/${{matrix.platform}}/*
 
       - name: Upload firmware to release
         uses: softprops/action-gh-release@v1
@@ -39,13 +44,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ env.release_tag }}
-          files: ./*/*.ko
+          files: ./igc*.zip
 
-      #- name: Delete workflow runs
-      #  uses: Mattraks/delete-workflow-runs@v2
-      #  with:
-      #    retain_days: 1
-      #    keep_minimum_runs: 9
+      - name: Delete workflow runs
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          retain_days: 1
+          keep_minimum_runs: 9
 
       - name: Remove old Releases
         uses: dev-drprasad/delete-older-releases@v0.1.0
