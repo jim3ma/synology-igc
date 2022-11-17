@@ -374,7 +374,7 @@ static void igc_clean_rx_ring(struct igc_ring *rx_ring)
 					buffer_info->dma,
  				    igc_rx_pg_size(rx_ring),
 				    DMA_FROM_DEVICE);
-		__free_page(buffer_info->page);
+		__free_pages(buffer_info->page, igc_rx_pg_order(rx_ring));
 
 		i++;
 		if (i == rx_ring->count)
@@ -1763,7 +1763,7 @@ static void igc_put_rx_buffer(struct igc_ring *rx_ring,
 		dma_unmap_page(rx_ring->dev, rx_buffer->dma,
 					igc_rx_pg_size(rx_ring),
 					DMA_FROM_DEVICE);
-		__free_page(rx_buffer->page);
+		__free_pages(rx_buffer->page, igc_rx_pg_order(rx_ring));
 	}
 
 	/* clear contents of rx_buffer */
@@ -1801,7 +1801,7 @@ static bool igc_alloc_mapped_page(struct igc_ring *rx_ring,
 	 * there isn't much point in holding memory we can't use
 	 */
 	if (dma_mapping_error(rx_ring->dev, dma)) {
-		__free_page(page);
+		__free_pages(page, igc_rx_pg_order(rx_ring));
 
 		rx_ring->rx_stats.alloc_failed++;
 		return false;
