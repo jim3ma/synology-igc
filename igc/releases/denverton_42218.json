@@ -1,17 +1,17 @@
 {
-  "mod_version": "1.2.1",
+  "mod_version": "1.2.3",
 
   "files": [
     {
       "name": "igc-denverton.tgz",
       "url": "https://raw.githubusercontent.com/wjz304/synology-igc/master/igc/releases/igc-denverton.tgz",
-      "sha256": "045b6121476054cd2378d7515a1501e6115725eb6006006266b35a3ba9a2e497",
+      "sha256": "c4371ff8e2790688f1dc15ea38855274892114fda15f4ff63f1a639956cd1568",
       "packed": true
     },
     {
       "name": "check-igc.sh",
       "url": "https://raw.githubusercontent.com/wjz304/synology-igc/master/igc/src/check-igc.sh",
-      "sha256": "045b6121476054cd2378d7515a1501e6115725eb6006006266b35a3ba9a2e497",
+      "sha256": "c4371ff8e2790688f1dc15ea38855274892114fda15f4ff63f1a639956cd1568",
       "packed": false
     }
   ],
