@@ -2,17 +2,18 @@
 
 > Backport from Linux Kernel v5.12, commit: https://github.com/torvalds/linux/commit/9f4ad9e425a1d3b6a34617b8ea226d56a119a717
 
-## Compatible devices&NICs list
+## Compatible devices&NICs manifest
 
 Not all i225/i226 NIC is working.
-My device is UGREEN DX4600 with i225v b3, the igc driver is working normally.
+My device is UGREEN DX4600 with I225-V B3, the igc driver is working normally.
 
 If this igc driver is compatible with your devices, you can reply in [this issue](https://github.com/jim3ma/synology-igc/issues/3).
 
-| Device Name | NIC version | Ports |
-| --- | --- | --- |
-| UGREEN DX4600 | i225v b3 | 2 |
-| ROG MAXIMUS XIII HERO | i225v b3 | 2 |
+| Motherboard | NIC Version | Device ID | Ports | Firmware Version |
+| --- | --- | --- | --- | --- |
+| UGREEN DX4600 | I225-V B3 | 8086:15F3| 2 | TBA |
+| ROG MAXIMUS XIII HERO | I225V B3 | 8086:15F3 | 2 | 1057:8754 |
+| CW N6005/N5105 V4 | I226-V | 8086:125C | 4 | 2014:8877 |
 
 ## Prebuild module
 
@@ -42,7 +43,7 @@ docker run -u 1000 --rm -t -v "${PWD}":/input -v "${PWD}/output":/output fbelave
 
 The `output/igc.ko` is the module.
 
-And then lollow load module action: https://github.com/jim3ma/synology-igc#3-load-module
+And then Follow load module actions: https://github.com/jim3ma/synology-igc#3-load-module
 
 ## Build in Synology develop environment
 
