@@ -72,14 +72,6 @@ jobs:
           # 修改源文件版本号
           sed -i "s/^#define DRV_VERSION.*/#define DRV_VERSION \"$NEW_TAG\"/" igc_main.c
           
-      - name: Commit and Push
-        run: |
-          if [ -n "$(git status -s | grep igc_main.c)" ];then
-            git add igc_main.c
-            git commit -m "update ${{ env.new_tag }}"
-            git push -f
-          fi
-          
       - name: Build igc for ${{matrix.platform}}
         run: |
           mkdir ./${{matrix.platform}} && chmod 777 ./${{matrix.platform}}
@@ -159,12 +151,23 @@ jobs:
             echo ${i}
             sed -i "s|${oldrepo}|${{ github.repository }}|g" ${i}
           done
+          
+          # 修改源文件版本号
+          sed -i "s/^#define DRV_VERSION.*/#define DRV_VERSION \"$NEW_TAG\"/" igc_main.c
 
       - name: Commit and Push
         run: |
+          ischange=false
           if [ -n "$(git status -s | grep igc/)" ];then
             git add ./igc/*
+            ischange=true
+          fi
+          if [ -n "$(git status -s | grep igc_main.c)" ];then
+            git add ./igc_main.c
+            ischange=true
+          fi
+          if [ ${ischange} == true ];then
             git commit -m "update ${{ env.new_tag }}"
             git push -f
           fi
-
+          
