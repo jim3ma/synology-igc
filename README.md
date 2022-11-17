@@ -4,7 +4,7 @@
 
 ## Compatible devices&NICs manifest
 
-Not all i225/i226 NIC is working.
+Not all I225/I226 NIC is working.
 My device is UGREEN DX4600 with I225-V B3, the igc driver is working normally.
 
 If this igc driver is compatible with your devices, you can reply in [this issue](https://github.com/jim3ma/synology-igc/issues/3).
@@ -12,7 +12,7 @@ If this igc driver is compatible with your devices, you can reply in [this issue
 | Motherboard | NIC Version | Device ID | Ports | Firmware Version |
 | --- | --- | --- | --- | --- |
 | UGREEN DX4600 | I225-V B3 | 8086:15F3| 2 | TBA |
-| ROG MAXIMUS XIII HERO | I225V B3 | 8086:15F3 | 2 | 1057:8754 |
+| ROG MAXIMUS XIII HERO | I225-V B3 | 8086:15F3 | 2 | 1057:8754 |
 | CW N6005/N5105 V4 | I226-V | 8086:125C | 4 | 2014:8877 |
 
 ## Prebuild module
