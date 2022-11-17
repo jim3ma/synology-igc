@@ -1,11 +1,11 @@
 {
-  "mod_version": "1.2.7",
+  "mod_version": "1.2.8",
 
   "files": [
     {
       "name": "igc-apollolake.tgz",
       "url": "https://raw.githubusercontent.com/jim3ma/synology-igc/master/igc/releases/igc-apollolake.tgz",
-      "sha256": "1e32b87575307145cb93844fa27f2230f6c471c7eb01ab11d7cb98589eba4cb4",
+      "sha256": "8d2ddf95482fa98a4f0f6a93a2a90b78f06c6328d8acbdd1f0611fb9d7512bc3",
       "packed": true
     },
     {

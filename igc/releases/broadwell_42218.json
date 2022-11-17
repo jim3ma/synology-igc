@@ -1,11 +1,11 @@
 {
-  "mod_version": "1.2.7",
+  "mod_version": "1.2.8",
 
   "files": [
     {
       "name": "igc-broadwell.tgz",
       "url": "https://raw.githubusercontent.com/jim3ma/synology-igc/master/igc/releases/igc-broadwell.tgz",
-      "sha256": "20d79403c414ca2a3bac34084d2f675b7d71c1203746db2c335b0ae8a74a4c22",
+      "sha256": "120f24df310b10c135999e3c7cdedcf5dd2d0dc8ce9d1c62a1a85fba7c74e8a2",
       "packed": true
     },
     {

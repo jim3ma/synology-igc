@@ -1,11 +1,11 @@
 {
-  "mod_version": "1.2.7",
+  "mod_version": "1.2.8",
 
   "files": [
     {
       "name": "igc-v1000.tgz",
       "url": "https://raw.githubusercontent.com/jim3ma/synology-igc/master/igc/releases/igc-v1000.tgz",
-      "sha256": "d73b4e34ff7982b255cb3d888ab3a12a765c3eb1a278c11091b797018c686ead",
+      "sha256": "f2a3e27b3974d53abaaf47ff4279cd54e747d5dfef93c65347fad33ddfb815c4",
       "packed": true
     },
     {
