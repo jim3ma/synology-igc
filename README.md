@@ -101,6 +101,16 @@ ip link set up eth1 # in my machine, the nic name is eth1
 
 ## History
 
+### 1.2.8
+
+_Date 2022.11.17_
+
+* fix pages leak for IGC_RING_FLAG_RX_3K_BUFFER devices
+
+### 1.2.4 - 1.2.7
+
+Only test for automating build, no code changes
+
 ### 1.2.3
 
 _Date 2022.11.16_
