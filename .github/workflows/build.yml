@@ -8,7 +8,10 @@
 
 name: Build
 on:
-#  push:
+  push:
+    tags:
+      - '*'
+      
   workflow_dispatch:
     inputs:
       version:
@@ -56,12 +59,16 @@ jobs:
           NEW_TAG=$(increment_version ${CUR_TAG})
           echo CUR_TAG: ${CUR_TAG}    NEW_TAG:${NEW_TAG}
 
-          if [ -n "${{ inputs.version }}" ]; then
-            echo "new_tag=${{ inputs.version }}" >> $GITHUB_ENV
+          if [ ${{ github.event_name }} == 'push' -a ${{ github.ref_type }} == 'tag' ]; then
+            echo "new_tag=${{ github.ref_name }}" >> $GITHUB_ENV
           else
-            echo "new_tag=${NEW_TAG}" >> $GITHUB_ENV
+            if [ -n "${{ inputs.version }}" ]; then
+              echo "new_tag=${{ inputs.version }}" >> $GITHUB_ENV
+            else
+              echo "new_tag=${NEW_TAG}" >> $GITHUB_ENV
+            fi
           fi
-  
+
           echo 'git_log<<EOF' >> $GITHUB_ENV
           git log ${CUR_TAG}..HEAD --oneline >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
@@ -74,6 +81,8 @@ jobs:
           
       - name: Build igc for ${{matrix.platform}}
         run: |
+          echo new_tag: ${{ env.new_tag }}
+          
           mkdir ./${{matrix.platform}} && chmod 777 ./${{matrix.platform}}
           sudo docker run -u 1000 --rm -t -v "${PWD}":/input -v "${PWD}/${{matrix.platform}}":/output fbelavenuto/syno-compiler compile-module ${{matrix.platform}}
           
@@ -106,6 +115,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@main
+        
+      - name: git switch
+        if: github.event_name == 'push' && github.ref_type == 'tag'
+        run: |
+          git fetch
+          git branch -a
+          git checkout --progress --force main
 
       - name: Init Env
         run: |
