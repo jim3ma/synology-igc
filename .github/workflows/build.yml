@@ -8,8 +8,13 @@
 
 name: Build
 on:
-  push:
+#  push:
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'tag'
+        required: false
+        type: string
 
 jobs:
   build:
@@ -23,40 +28,132 @@ jobs:
         uses: actions/checkout@main
 
       - name: Init Env
-        run : |
+        run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
-          sudo timedatectl set-timezone "Asia/Shanghai"
-          echo "release_tag=$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_ENV
+          sudo timedatectl set-timezone "Asia/Shanghai" 
+
+      - name: Calculate tag
+        run: |
+          function increment_version() {
+            declare -a part=( ${1//\./ } )
+            declare    new
+            declare -i carry=1
+          
+            for (( CNTR=${#part[@]}-1; CNTR>=0; CNTR-=1 )); do
+              len=${#part[CNTR]}
+              new=$((part[CNTR]+carry))
+              [ ${#new} -gt $len ] && carry=1 || carry=0
+              [ $CNTR -gt 0 ] && part[CNTR]=${new: -len} || part[CNTR]=${new}
+            done
+            new="${part[*]}"
+            echo -e "${new// /.}"
+          }
+
+          git clone ${{ github.server_url }}/${{ github.repository }}
+          cd ${{ github.event.repository.name }}
+          CUR_TAG=$(git tag -l | tail -1)
+          NEW_TAG=$(increment_version ${CUR_TAG})
+          echo CUR_TAG: ${CUR_TAG}    NEW_TAG:${NEW_TAG}
+
+          if [ -n "${{ inputs.version }}" ]; then
+            echo "new_tag=${{ inputs.version }}" >> $GITHUB_ENV
+          else
+            echo "new_tag=${NEW_TAG}" >> $GITHUB_ENV
+          fi
+  
+          echo 'git_log<<EOF' >> $GITHUB_ENV
+          git log ${CUR_TAG}..HEAD --oneline >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+
+          cd ..
+          rm -rf ${{ github.event.repository.name }}
 
       - name: Build igc for ${{matrix.platform}}
-        run : |
+        run: |
           mkdir ./${{matrix.platform}} && chmod 777 ./${{matrix.platform}}
           sudo docker run -u 1000 --rm -t -v "${PWD}":/input -v "${PWD}/${{matrix.platform}}":/output fbelavenuto/syno-compiler compile-module ${{matrix.platform}}
           
           ls -al ${PWD}/${{matrix.platform}}
           tar zcvf igc-${{matrix.platform}}.tgz -C./${{matrix.platform}}/ .
+          rm -rf ${PWD}/${{matrix.platform}}
 
-      - name: Upload firmware to release
+      - name: Upload firmware to artifacts
+        uses: actions/upload-artifact@v3
+        if: (!cancelled())
+        with:
+          name: igc
+          path: ./igc-*.tgz
+
+      - name: Upload firmware to releases
         uses: softprops/action-gh-release@v1
         if: (!cancelled())
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ env.release_tag }}
-          files: ./igc*.tgz
+          tag_name: ${{ env.new_tag }}
+          body: |
+            Changes:  
+            ${{ env.git_log }}  
+          files: ./igc-*.tgz
 
-      - name: Delete workflow runs
-        uses: Mattraks/delete-workflow-runs@v2
-        with:
-          retain_days: 1
-          keep_minimum_runs: 9
+  ext:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
 
-      - name: Remove old Releases
-        uses: dev-drprasad/delete-older-releases@v0.1.0
+      - name: Init Env
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          sudo timedatectl set-timezone "Asia/Shanghai" 
+
+      - name: download to artifacts
+        uses: actions/download-artifact@v3
         with:
-          keep_latest: 9
-          delete_tags: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: igc
+          path: ./
+
+      - name: update exts
+        run: |
+          ls -al
+
+          git clone ${{ github.server_url }}/${{ github.repository }}
+          cd ${{ github.event.repository.name }}
+          NEW_TAG=$(git tag -l | tail -1)
+          cd ..
+          rm -rf ${{ github.event.repository.name }}
+          echo NEW_TAG ${NEW_TAG}
+          echo "new_tag=${NEW_TAG}" >> $GITHUB_ENV
+
+          for i in igc-*.tgz
+          do
+            echo ${i}
+            rm -f ./igc/releases/${i}
+            cp -f ${i} ./igc/releases/${i}
+            platform=$(echo ${i} | awk -F'[-.]' '{ print $2 }')
+            configfile=./igc/releases/${platform}_42218.json
+            sed -i "s/$(jq -r .files[0].sha256 ${configfile})/$(sha256sum ./igc/releases/igc-${platform}.tgz | awk '{print $1}')/g" ${configfile}
+            sed -i "s/\"$(jq -r .mod_version ${configfile})\"/\"${NEW_TAG}\"/g" ${configfile}
+          done
+
+          baseurl=$(jq -r .url ./igc/rpext-index.json)
+          repotmp=${baseurl%/master/*}
+          oldrepo=${repotmp#*.com/}
+          echo ${oldrepo}
+          for i in $(find ./igc -name "*.json")
+          do
+            echo ${i}
+            sed -i "s|${oldrepo}|${{ github.repository }}|g" ${i}
+          done
+
+      - name: Commit and Push
+        run: |
+          if [ -n "$(git status -s | grep igc/)" ];then
+            git add ./igc/*
+            git commit -m "update ${{ env.new_tag }}"
+            git push -f
+          fi
 

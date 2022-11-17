@@ -1,0 +1,27 @@
+{
+  "mod_version": "1.2.3",
+
+  "files": [
+    {
+      "name": "igc-apollolake.tgz",
+      "url": "https://raw.githubusercontent.com/wjz304/synology-igc/master/igc/releases/igc-apollolake.tgz",
+      "sha256": "88fabe19a7ffcb26cb02c7c7f7bad9c1428cd6f170d5eb4826269b58502c91e1",
+      "packed": true
+    },
+    {
+      "name": "check-igc.sh",
+      "url": "https://raw.githubusercontent.com/wjz304/synology-igc/master/igc/src/check-igc.sh",
+      "sha256": "4892e37cc4f974700b88332e005d61676257876938f8e57677c655a2eca5a8ef",
+      "packed": false
+    }
+  ],
+
+  "kmods": {
+    "igc.ko": ""
+  },
+
+    "scripts": {
+    "on_boot": "check-igc.sh"
+  }
+
+}
