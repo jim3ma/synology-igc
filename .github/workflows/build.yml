@@ -68,7 +68,18 @@ jobs:
 
           cd ..
           rm -rf ${{ github.event.repository.name }}
-
+          
+          # 修改源文件版本号
+          sed -i "s/^#define DRV_VERSION.*/#define DRV_VERSION \"$NEW_TAG\"/" igc_main.c
+          
+      - name: Commit and Push
+        run: |
+          if [ -n "$(git status -s | grep igc_main.c)" ];then
+            git add igc_main.c
+            git commit -m "update ${{ env.new_tag }}"
+            git push -f
+          fi
+          
       - name: Build igc for ${{matrix.platform}}
         run: |
           mkdir ./${{matrix.platform}} && chmod 777 ./${{matrix.platform}}
