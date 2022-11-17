@@ -13,13 +13,13 @@ If this igc driver is compatible with your devices, you can reply in [this issue
 | --- | --- | --- | --- | --- |
 | UGREEN DX4600 | I225-V B3 | 8086:15F3| 2 | TBA |
 | ROG MAXIMUS XIII HERO | I225-V B3 | 8086:15F3 | 2 | 1057:8754 |
-| CW N6005/N5105 V4 | I226-V | 8086:125C | 4 | 2014:8877 |
+| CW N5105-N6005-6SATA | I226-V | 8086:125C | 4 | 2014:8877 |
 
 ## Prebuild module
 
-Download from https://github.com/fbelavenuto/arpl-modules
+Download from https://github.com/jim3ma/synology-igc/tree/main/igc/releases
 
-Eg: https://github.com/fbelavenuto/arpl-modules/blob/main/geminilake-4.4.180/igc.ko
+Eg: https://github.com/jim3ma/synology-igc/raw/main/igc/releases/igc-geminilake.tgz
 
 Follow load module action: https://github.com/jim3ma/synology-igc#3-load-module
 
