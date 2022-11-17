@@ -1,11 +1,11 @@
 {
-  "mod_version": "1.2.6",
+  "mod_version": "1.2.7",
 
   "files": [
     {
       "name": "igc-geminilake.tgz",
       "url": "https://raw.githubusercontent.com/jim3ma/synology-igc/master/igc/releases/igc-geminilake.tgz",
-      "sha256": "40f357d32b527277213e4e036cd2354c0ac955e287fbcc98a133968591ef9b93",
+      "sha256": "374ed30cd1fcf6f556b79c31c2d9a07d7556ee0184c38565321bf194b4ff264b",
       "packed": true
     },
     {
