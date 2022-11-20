@@ -2,6 +2,11 @@
 
 > Backport from Linux Kernel v5.12, commit: https://github.com/torvalds/linux/commit/9f4ad9e425a1d3b6a34617b8ea226d56a119a717
 
+## Known issues
+
+* Kernel memory leak in some motherboards, the leak may be stable, so in large memory case, it's okay.
+> The Synology kernel was too old, and they patched and backported many codes. I have backported igc into Fedora 23 with Kernel 4.6.9 for kmemleak tools, all is okay. I'm investigating this kernel memory leak in Synology kernel. I'm not a kernel expert, it may be cost many days.
+
 ## Compatible devices&NICs manifest
 
 Not all I225/I226 NIC is working.
