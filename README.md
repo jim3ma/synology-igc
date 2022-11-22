@@ -4,8 +4,7 @@
 
 ## Known issues
 
-* Kernel memory leak in some motherboards, the leak may be stable, so in large memory case, it's okay.
-> The Synology kernel was too old, and they patched and backported many codes. I have backported igc into Fedora 23 with Kernel 4.6.9 for kmemleak tools, all is okay. I'm investigating this kernel memory leak in Synology kernel. I'm not a kernel expert, it may be cost many days.
+* None
 
 ## Compatible devices&NICs manifest
 
@@ -105,6 +104,12 @@ ip link set up eth1 # in my machine, the nic name is eth1
 2. igc: Enable internal i225 PPS - https://github.com/torvalds/linux/commit/64433e5bf40abf893c7edbc60899bdcdd7c70b76
 
 ## History
+
+### 1.3.0
+
+_Date 2022.11.23_
+
+* fix page refcount not decrease when free page
 
 ### 1.2.8
 
