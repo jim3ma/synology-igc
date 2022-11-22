@@ -201,3 +201,22 @@ static inline bool ethtool_convert_link_mode_to_legacy_u32(u32 *legacy_u32,
         *legacy_u32 = src[0];
         return retval;
 }
+
+static inline int page_ref_sub_and_test(struct page *page, int nr)
+{
+	int ret = atomic_sub_and_test(nr, &page->_count);
+	return ret;
+}
+
+static inline void __page_frag_cache_drain(struct page *page, unsigned int count)
+{
+	if (page_ref_sub_and_test(page, count)) {
+		unsigned int order = compound_order(page);
+
+                // TODO optimize with free_unref_page
+		// if (order == 0)
+		// 	free_unref_page(page);
+		// else
+			__free_pages(page, order);
+	}
+}

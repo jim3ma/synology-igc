@@ -374,7 +374,7 @@ static void igc_clean_rx_ring(struct igc_ring *rx_ring)
 					buffer_info->dma,
  				    igc_rx_pg_size(rx_ring),
 				    DMA_FROM_DEVICE);
-		__free_pages(buffer_info->page, igc_rx_pg_order(rx_ring));
+		__page_frag_cache_drain(buffer_info->page, buffer_info->pagecnt_bias);
 
 		i++;
 		if (i == rx_ring->count)
@@ -1763,7 +1763,7 @@ static void igc_put_rx_buffer(struct igc_ring *rx_ring,
 		dma_unmap_page(rx_ring->dev, rx_buffer->dma,
 					igc_rx_pg_size(rx_ring),
 					DMA_FROM_DEVICE);
-		__free_pages(rx_buffer->page, igc_rx_pg_order(rx_ring));
+		__page_frag_cache_drain(rx_buffer->page, rx_buffer->pagecnt_bias);
 	}
 
 	/* clear contents of rx_buffer */
