@@ -144,6 +144,7 @@ static void igc_ethtool_get_drvinfo(struct net_device *netdev,
 	u16 gphy_version;
 
 	strscpy(drvinfo->driver, igc_driver_name, sizeof(drvinfo->driver));
+	strscpy(drvinfo->version, igc_driver_version, sizeof(drvinfo->version));
 
 	/* NVM image version is reported as firmware version for i225 device */
 	hw->nvm.ops.read(hw, IGC_NVM_DEV_STARTER, 1, &nvm_version);
