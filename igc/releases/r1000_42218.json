@@ -1,0 +1,27 @@
+{
+  "mod_version": "1.1.1",
+
+  "files": [
+    {
+      "name": "igc-r1000.tgz",
+      "url": "https://raw.githubusercontent.com/wjz304/synology-igc/master/igc/releases/igc-r1000.tgz",
+      "sha256": "33615d980a5b8734a2964d8e93c63b2fd56d8c7742419a1326ffed97bf946066",
+      "packed": true
+    },
+    {
+      "name": "check-igc.sh",
+      "url": "https://raw.githubusercontent.com/wjz304/synology-igc/master/igc/src/check-igc.sh",
+      "sha256": "4892e37cc4f974700b88332e005d61676257876938f8e57677c655a2eca5a8ef",
+      "packed": false
+    }
+  ],
+
+  "kmods": {
+    "igc.ko": ""
+  },
+
+    "scripts": {
+    "on_boot": "check-igc.sh"
+  }
+
+}
