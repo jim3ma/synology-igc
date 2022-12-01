@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        platform: [apollolake, broadwell, broadwellnk, denverton, geminilake, v1000]
+        platform: [apollolake, broadwell, broadwellnk, denverton, geminilake, v1000, r1000]
 
     steps:
       - name: Checkout
