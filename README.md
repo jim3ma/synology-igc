@@ -104,6 +104,11 @@ ip link set up eth1 # in my machine, the nic name is eth1
 
 ## History
 
+### 1.3.1
+
+_Date 2022.11.26_
+* update ethtool version
+
 ### 1.3.0
 
 _Date 2022.11.23_
