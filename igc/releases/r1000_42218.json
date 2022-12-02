@@ -4,13 +4,13 @@
   "files": [
     {
       "name": "igc-r1000.tgz",
-      "url": "https://raw.githubusercontent.com/wjz304/synology-igc/master/igc/releases/igc-r1000.tgz",
+      "url": "https://raw.githubusercontent.com/jim3ma/synology-igc/master/igc/releases/igc-r1000.tgz",
       "sha256": "e5d52d9aaf0f7c9a55d5c6e046c8cce023b2aa05bad626f69660736ea333e60b",
       "packed": true
     },
     {
       "name": "check-igc.sh",
-      "url": "https://raw.githubusercontent.com/wjz304/synology-igc/master/igc/src/check-igc.sh",
+      "url": "https://raw.githubusercontent.com/jim3ma/synology-igc/master/igc/src/check-igc.sh",
       "sha256": "4892e37cc4f974700b88332e005d61676257876938f8e57677c655a2eca5a8ef",
       "packed": false
     }
